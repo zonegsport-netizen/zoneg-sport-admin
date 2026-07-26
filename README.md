@@ -1,23 +1,57 @@
-# ZoneG Sport Admin React v1
+# ZoneG Sport ERP v1.0 — Sprint 1
 
-## Chạy thử trên máy
-1. Cài Node.js 18 trở lên.
-2. Giải nén dự án và mở Terminal tại thư mục.
-3. Chạy `npm install`.
-4. Sao chép `.env.example` thành `.env`.
-5. Dán Publishable Key vào `VITE_SUPABASE_PUBLISHABLE_KEY`.
-6. Chạy `npm run dev`.
+## Nội dung
+- React + Vite
+- Supabase Auth
+- Supabase PostgreSQL
+- Netlify
+- Dashboard
+- Sản phẩm
+- Kho
+- Đơn hàng
+- Khách hàng
+- Nhà cung cấp
+- Khung Hóa đơn và Báo cáo
+
+## Cài đặt Supabase
+1. Mở SQL Editor.
+2. Chạy `supabase/schema.sql`.
+3. Vào Authentication → Providers → Email và bật Email.
+4. Authentication → URL Configuration:
+   - Site URL: URL Netlify.
+   - Redirect URLs: thêm `https://TEN-SITE.netlify.app/**`.
+
+## Chạy trên máy
+```bash
+npm install
+copy .env.example .env
+npm run dev
+```
+
+Điền Project URL và Publishable Key vào `.env`.
+
+## Đưa lên GitHub
+Copy toàn bộ file trong thư mục dự án vào thư mục repository đã clone bằng GitHub Desktop.
+Sau đó:
+1. Summary: `Initial ZoneG Sport ERP v1.0`
+2. Commit to main
+3. Push origin
 
 ## Deploy Netlify
 - Build command: `npm run build`
 - Publish directory: `dist`
 - Environment variables:
-  - `VITE_SUPABASE_URL=https://zwjdvvtqydmlmmwhnqvo.supabase.co`
-  - `VITE_SUPABASE_PUBLISHABLE_KEY=<publishable key của anh>`
+  - `VITE_SUPABASE_URL`
+  - `VITE_SUPABASE_PUBLISHABLE_KEY`
 
-## Supabase
-Dùng bảng hiện tại `public.zoneg_app_state`. Không cần chạy SQL mới ở bước này.
-Bật Email Auth và đặt Site URL/Redirect URL đúng tên miền Netlify.
+## Lưu ý
+Nếu chưa chạy schema SQL, giao diện vẫn hiển thị dữ liệu mẫu để kiểm tra bố cục.
 
-## Chức năng v1
-Đăng nhập, Dashboard, sản phẩm, cảnh báo tồn kho, đơn hàng cơ bản, khách hàng, nhà cung cấp và đồng bộ dữ liệu nhiều máy.
+
+## v1.1
+- Nút Thêm sản phẩm ghi trực tiếp vào `public.products`.
+- Kiểm tra SKU trùng trước khi lưu.
+- Hiển thị lỗi Supabase trong form.
+- Tải lại dữ liệu từ cloud.
+- Đồng bộ Realtime cho products, orders, customers, suppliers.
+- Sửa đúng thứ tự SKU / tên sản phẩm.
