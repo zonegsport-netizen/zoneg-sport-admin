@@ -1,51 +1,47 @@
-# ZoneG Sport ERP v1.2
+# ZoneG Sport ERP v1.2.1 — Nhân viên & phân quyền
 
-## Tính năng mới
+## Nâng cấp chính
 
-- Thêm, sửa, xóa sản phẩm có kiểm tra ràng buộc.
-- Danh mục và thương hiệu độc lập.
-- Mỗi sản phẩm có nhiều biến thể màu/size.
-- SKU và mã vạch riêng cho từng biến thể.
-- Giá bán, giá nhập và tồn tối thiểu riêng theo biến thể.
-- Nhập kho, xuất kho, điều chỉnh tăng/giảm, khách trả hàng, trả nhà cung cấp.
-- Mỗi thao tác kho tạo một bản ghi `stock_transactions`.
-- Không cho xuất vượt tồn.
-- Tồn tổng của sản phẩm tự đồng bộ từ tổng tồn các biến thể.
-- Lịch sử giao dịch kho và cảnh báo tồn thấp.
-- Đồng bộ Realtime giữa nhiều máy.
+- Vai trò: Chủ cửa hàng, Quản lý, Bán hàng, Nhân viên kho.
+- Trang Nhân viên dành riêng cho chủ cửa hàng.
+- Chủ có thể đổi vai trò và khóa/mở tài khoản.
+- Tự động tạo profile khi tạo user trong Supabase Auth.
+- Menu, giá nhập, lợi nhuận và nút thao tác thay đổi theo vai trò.
+- RLS chặn quyền tại cơ sở dữ liệu.
+- Chỉ owner/manager sửa sản phẩm.
+- Chỉ owner xóa sản phẩm, biến thể, danh mục và thương hiệu.
+- Owner/manager/warehouse được điều chỉnh kho.
+- Owner/manager/sales truy cập đơn hàng, khách hàng, hóa đơn.
+- Warehouse không truy cập doanh thu, khách hàng hoặc đơn hàng.
 
-## Bước 1 — Chạy Migration SQL
+## Bước 1 — Chạy SQL
 
-Mở Supabase → SQL Editor → New query.
+Supabase → SQL Editor → New query.
 
-Sao chép toàn bộ file:
+Chạy toàn bộ file:
 
-`supabase/migration-v1.2.sql`
+`supabase/migration-v1.2.1-permissions.sql`
 
-Dán vào SQL Editor và nhấn Run.
+Tài khoản Auth được tạo đầu tiên sẽ được gán vai trò `owner`.
+Các tài khoản khác mặc định là `sales`.
 
-Kết quả đúng thường là:
+## Bước 2 — Cập nhật GitHub
 
-`Success. No rows returned`
+Copy toàn bộ dự án vào repository, sau đó:
 
-## Bước 2 — Cập nhật mã nguồn GitHub
+- Summary: `Upgrade employee roles v1.2.1`
+- Commit to main
+- Push origin
 
-1. Giải nén ZIP.
-2. Copy toàn bộ nội dung vào thư mục repository `zoneg-sport-admin`.
-3. Chọn Replace khi Windows hỏi ghi đè.
-4. GitHub Desktop:
-   - Summary: `Upgrade ZoneG Sport ERP v1.2`
-   - Commit to main
-   - Push origin
-5. Chờ Netlify tự deploy và báo Published.
-6. Mở `https://shop.zoneg.io.vn` và nhấn Ctrl+F5.
+Chờ Netlify Published rồi nhấn Ctrl+F5.
 
-## Quy trình sử dụng đúng
+## Cách tạo tài khoản nhân viên
 
-1. Tạo danh mục.
-2. Tạo thương hiệu.
-3. Tạo sản phẩm chính.
-4. Mở sản phẩm và tạo các biến thể màu/size.
-5. Sang Kho hàng và dùng Điều chỉnh kho để nhập tồn ban đầu.
+1. Supabase → Authentication → Users.
+2. Add user → Create new user hoặc Send invitation.
+3. Khi user được tạo, trigger sẽ tự tạo dòng trong bảng `profiles`.
+4. Đăng nhập bằng tài khoản chủ.
+5. Mở menu Nhân viên.
+6. Chọn vai trò và trạng thái tài khoản.
 
-Không nhập tồn ban đầu trực tiếp khi tạo biến thể, vì mọi thay đổi kho phải có lịch sử giao dịch.
+Không đưa Secret Key hoặc service_role key vào React.
