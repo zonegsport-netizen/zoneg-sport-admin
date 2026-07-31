@@ -1,47 +1,43 @@
-# ZoneG Sport ERP v1.2.1 — Nhân viên & phân quyền
+# ZoneG Sport ERP v1.6.1 — Dữ liệu lớn
 
-## Nâng cấp chính
+## Nâng cấp
 
-- Vai trò: Chủ cửa hàng, Quản lý, Bán hàng, Nhân viên kho.
-- Trang Nhân viên dành riêng cho chủ cửa hàng.
-- Chủ có thể đổi vai trò và khóa/mở tài khoản.
-- Tự động tạo profile khi tạo user trong Supabase Auth.
-- Menu, giá nhập, lợi nhuận và nút thao tác thay đổi theo vai trò.
-- RLS chặn quyền tại cơ sở dữ liệu.
-- Chỉ owner/manager sửa sản phẩm.
-- Chỉ owner xóa sản phẩm, biến thể, danh mục và thương hiệu.
-- Owner/manager/warehouse được điều chỉnh kho.
-- Owner/manager/sales truy cập đơn hàng, khách hàng, hóa đơn.
-- Warehouse không truy cập doanh thu, khách hàng hoặc đơn hàng.
+- Phân trang phía Supabase: 50 sản phẩm mỗi trang.
+- Tìm kiếm phía server theo mã, tên, danh mục và thương hiệu.
+- Không tải toàn bộ sản phẩm, đơn hàng hoặc giao dịch khi mở trang.
+- Nhập sản phẩm và biến thể từ Excel.
+- Kiểm tra mã trùng trong file trước khi nhập.
+- Nhập/upsert dữ liệu bằng một RPC transaction.
+- Tạo tồn đầu kỳ và lịch sử kho từ file Excel.
+- Xuất sản phẩm và biến thể ra Excel.
+- Sao lưu toàn bộ dữ liệu nghiệp vụ ra JSON theo từng lô 1.000 bản ghi.
+- Bổ sung index cho SKU, tên, ngày tạo và khóa liên kết.
 
-## Bước 1 — Chạy SQL
+## Cài đặt
 
-Supabase → SQL Editor → New query.
+1. Chạy file `supabase/migration-v1.6.1-big-data.sql`.
+2. Copy toàn bộ mã nguồn lên GitHub.
+3. Commit: `Upgrade ZoneG ERP v1.6.1 big data`
+4. Push và chờ Netlify Published.
+5. Nhấn Ctrl+F5.
 
-Chạy toàn bộ file:
+## Nhập Excel
 
-`supabase/migration-v1.2.1-permissions.sql`
+Dùng file `ZoneG-Template-Nhap-San-Pham-v1.6.1.xlsx`.
 
-Tài khoản Auth được tạo đầu tiên sẽ được gán vai trò `owner`.
-Các tài khoản khác mặc định là `sales`.
+- Sheet `SAN_PHAM`: sản phẩm chính.
+- Sheet `BIEN_THE`: màu, size, giá và tồn đầu kỳ.
+- Có thể cập nhật sản phẩm đã tồn tại bằng cùng mã SKU.
+- Tồn đầu kỳ chỉ tự tạo khi biến thể hiện có tồn bằng 0, tránh cộng lặp tồn khi nhập lại.
 
-## Bước 2 — Cập nhật GitHub
+## Sao lưu
 
-Copy toàn bộ dự án vào repository, sau đó:
+Nút `Sao lưu` xuất một file JSON chứa:
+- sản phẩm, biến thể;
+- danh mục, thương hiệu;
+- lịch sử kho;
+- khách hàng, đơn hàng, chi tiết;
+- thanh toán;
+- nhà cung cấp và phiếu nhập.
 
-- Summary: `Upgrade employee roles v1.2.1`
-- Commit to main
-- Push origin
-
-Chờ Netlify Published rồi nhấn Ctrl+F5.
-
-## Cách tạo tài khoản nhân viên
-
-1. Supabase → Authentication → Users.
-2. Add user → Create new user hoặc Send invitation.
-3. Khi user được tạo, trigger sẽ tự tạo dòng trong bảng `profiles`.
-4. Đăng nhập bằng tài khoản chủ.
-5. Mở menu Nhân viên.
-6. Chọn vai trò và trạng thái tài khoản.
-
-Không đưa Secret Key hoặc service_role key vào React.
+Nên sao lưu mỗi tuần và lưu thêm một bản trên Google Drive.
