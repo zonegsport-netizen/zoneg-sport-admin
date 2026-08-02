@@ -144,7 +144,7 @@ function Products({profile,setNotice}){
   <div className="notice">Biến thể được tạo với tồn bằng 0. Nhập tồn tại mục Kho hàng để có lịch sử giao dịch.</div>
   <div className="actions"><button type="button" onClick={()=>setVariantOpen(false)}>Hủy</button><button className="primary">Lưu biến thể</button></div>
  </form></div>}
- </>}
+ </>
 }
 
 

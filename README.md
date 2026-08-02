@@ -36,3 +36,9 @@ supabase secrets set SUPABASE_SERVICE_ROLE_KEY=YOUR_SERVICE_ROLE_KEY
 ```
 
 Không đưa `SUPABASE_SERVICE_ROLE_KEY` vào Netlify hoặc mã React.
+
+
+## v1.7.1 - Sửa lỗi build Netlify
+
+- Sửa lỗi cú pháp JSX `Unexpected }` tại `src/App.jsx`.
+- Không thay đổi cấu trúc cơ sở dữ liệu hay chức năng hóa đơn.
