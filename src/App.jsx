@@ -1,9 +1,9 @@
 import React,{useEffect,useMemo,useRef,useState}from'react'
-import{BarChart3,Boxes,Download,Edit3,Eye,FileDown,FileSpreadsheet,LayoutDashboard,LogOut,Menu,PackagePlus,Plus,Printer,ReceiptText,RefreshCw,Search,ShoppingCart,Tags,Trash2,Truck,Upload,UserCog,WalletCards,X}from'lucide-react'
+import{BarChart3,Boxes,ClipboardList,Download,Edit3,Eye,FileDown,FileSpreadsheet,KeyRound,LayoutDashboard,LogOut,Menu,PackagePlus,Plus,Printer,ReceiptText,RefreshCw,Search,ShoppingCart,Tags,Trash2,Truck,Upload,UserCog,WalletCards,X}from'lucide-react'
 import html2canvas from'html2canvas'
 import{jsPDF}from'jspdf'
 import*as XLSX from'xlsx'
-import{supabase,money,fmtDate,normalizePhone}from'./lib'
+import{supabase,money,fmtDate,normalizePhone,staffEmailFromPhone}from'./lib'
 
 const PAGE_SIZE=50
 const NAV=[
@@ -17,23 +17,37 @@ const NAV=[
  ['purchases','Phiếu nhập hàng',Truck,['owner','manager','warehouse']],
  ['reports','Báo cáo',BarChart3,['owner','manager']],
  ['employees','Nhân viên',UserCog,['owner']],
+ ['activity','Nhật ký hoạt động',ClipboardList,['owner','manager']],
 ]
 const ROLE={owner:'Chủ cửa hàng',manager:'Quản lý',sales:'Nhân viên bán hàng',warehouse:'Nhân viên kho'}
 const VI_LABEL={sku:'Mã hàng',color:'Màu sắc',size:'Kích thước',stock:'Tồn kho',min_stock:'Tồn tối thiểu',code:'Mã chứng từ',customer_name:'Khách hàng',total:'Tổng tiền',balance_due:'Còn phải thu',status:'Trạng thái',created_at:'Ngày tạo',amount:'Số tiền',method:'Phương thức',note:'Ghi chú',supplier_name:'Nhà cung cấp',full_name:'Họ và tên',phone:'Số điện thoại',email:'Email',role:'Vai trò',active:'Hoạt động'}
 const VI_VALUE={active:'Đang hoạt động',inactive:'Ngừng hoạt động',draft:'Bản nháp',confirmed:'Đã xác nhận',completed:'Hoàn thành',cancelled:'Đã hủy',issued:'Đã phát hành',cash:'Tiền mặt',transfer:'Chuyển khoản',cod:'Thu hộ'}
 
-function Login({done}){const[id,setId]=useState(''),[password,setPassword]=useState(''),[error,setError]=useState('');async function submit(e){e.preventDefault();const input=id.includes('@')?{email:id,password}:{phone:normalizePhone(id),password};const{data,error}=await supabase.auth.signInWithPassword(input);if(error)setError(error.message);else done(data.session)}return <div className="login"><form onSubmit={submit}><div className="logo">ZG</div><h1>ZoneG Sport ERP</h1><p>Phiên bản 1.7</p><label>Email hoặc số điện thoại<input value={id} onChange={e=>setId(e.target.value)}/></label><label>Mật khẩu<input type="password" value={password} onChange={e=>setPassword(e.target.value)}/></label>{error&&<div className="notice error">{error}</div>}<button>Đăng nhập</button></form></div>}
+function Login({done}){
+ const[id,setId]=useState(''),[password,setPassword]=useState(''),[error,setError]=useState('')
+ async function submit(e){
+  e.preventDefault();setError('')
+  const value=id.trim()
+  const email=value.includes('@')?value:staffEmailFromPhone(value)
+  const{data,error}=await supabase.auth.signInWithPassword({email,password})
+  if(error){
+   const message=error.message==='Invalid login credentials'?'Tên đăng nhập hoặc mật khẩu không đúng.':error.message
+   setError(message)
+  }else done(data.session)
+ }
+ return <div className="login"><form onSubmit={submit}><div className="logo">ZG</div><h1>ZoneG Sport ERP</h1><p>Phiên bản 1.8</p><label>Email hoặc số điện thoại<input value={id} onChange={e=>setId(e.target.value)} placeholder="0901234567"/></label><label>Mật khẩu<input type="password" value={password} onChange={e=>setPassword(e.target.value)}/></label>{error&&<div className="notice error">{error}</div>}<button>Đăng nhập</button></form></div>
+}
 
 export default function App(){
  const[session,setSession]=useState(null),[profile,setProfile]=useState(null),[loading,setLoading]=useState(true),[page,setPage]=useState('dashboard'),[mobile,setMobile]=useState(false),[notice,setNotice]=useState('')
  useEffect(()=>{supabase.auth.getSession().then(({data})=>{setSession(data.session);setLoading(false)});const{data:s}=supabase.auth.onAuthStateChange((_e,x)=>setSession(x));return()=>s.subscription.unsubscribe()},[])
  useEffect(()=>{if(session)loadProfile()},[session])
- async function loadProfile(){const{data,error}=await supabase.from('profiles').select('*').eq('id',session.user.id).single();if(error)setNotice(error.message);else if(!data.active)await supabase.auth.signOut();else setProfile(data)}
+ async function loadProfile(){const{data,error}=await supabase.from('profiles').select('*').eq('id',session.user.id).single();if(error)setNotice(error.message);else if(!data.active)await supabase.auth.signOut();else{setProfile(data);if(!sessionStorage.getItem('zoneg-login-logged')){sessionStorage.setItem('zoneg-login-logged','1');await supabase.from('profiles').update({last_login:new Date().toISOString()}).eq('id',session.user.id);await supabase.from('activity_logs').insert({actor_id:session.user.id,actor_name:data.full_name||data.email||'Người dùng',action:'login',entity_type:'auth',description:'Đăng nhập hệ thống'})}}}
  const nav=NAV.filter(x=>x[3].includes(profile?.role))
  if(loading)return <div className="center">Đang tải...</div>
  if(!session)return <Login done={setSession}/>
  if(!profile)return <div className="center">Đang tải quyền...</div>
- return <div className="app"><aside className={mobile?'open':''}><div className="brand"><b>ZG</b><span>ZoneG Sport<small>{ROLE[profile.role]} · v1.7</small></span><button onClick={()=>setMobile(false)}><X/></button></div><nav>{nav.map(([id,label,I])=><button className={page===id?'active':''} onClick={()=>{setPage(id);setMobile(false)}} key={id}><I size={18}/>{label}</button>)}</nav><button className="logout" onClick={()=>supabase.auth.signOut()}><LogOut size={18}/>Đăng xuất</button></aside>
+ return <div className="app"><aside className={mobile?'open':''}><div className="brand"><b>ZG</b><span>ZoneG Sport<small>{ROLE[profile.role]} · v1.8</small></span><button onClick={()=>setMobile(false)}><X/></button></div><nav>{nav.map(([id,label,I])=><button className={page===id?'active':''} onClick={()=>{setPage(id);setMobile(false)}} key={id}><I size={18}/>{label}</button>)}</nav><button className="logout" onClick={()=>supabase.auth.signOut()}><LogOut size={18}/>Đăng xuất</button></aside>
  <main><header><button className="mobile-btn" onClick={()=>setMobile(true)}><Menu/></button><div><small>HỆ THỐNG QUẢN TRỊ</small><h1>{nav.find(x=>x[0]===page)?.[1]}</h1></div></header><section>{notice&&<div className="notice">{notice}</div>}
  {page==='dashboard'&&<Dashboard/>}
  {page==='products'&&<Products profile={profile} setNotice={setNotice}/>}
@@ -44,7 +58,8 @@ export default function App(){
  {page==='payments'&&<PagedSimple table="payments" title="Danh sách thanh toán" columns={['amount','method','note','created_at']}/>}
  {page==='purchases'&&<PagedSimple table="purchase_receipts" title="Danh sách phiếu nhập hàng" columns={['code','supplier_name','total','balance_due','status','created_at']}/>}
  {page==='reports'&&<Dashboard/>}
- {page==='employees'&&<EmployeesPage profile={profile} setNotice={setNotice}/>} 
+ {page==='employees'&&<EmployeesPage profile={profile} setNotice={setNotice}/>}
+ {page==='activity'&&<ActivityPage setNotice={setNotice}/>} 
  </section></main></div>
 }
 
@@ -176,60 +191,62 @@ function EmployeesPage({profile,setNotice}){
   e.preventDefault();setBusy(true);setNotice('')
   try{
    if(!form.full_name.trim())throw new Error('Vui lòng nhập họ tên.')
-   if(!form.phone.trim())throw new Error('Vui lòng nhập số điện thoại.')
+   if(!/^0\d{9}$/.test(form.phone.replace(/\D/g,'')))throw new Error('Số điện thoại phải gồm 10 chữ số và bắt đầu bằng 0.')
    if((form.password||'').length<8)throw new Error('Mật khẩu tạm phải có ít nhất 8 ký tự.')
-   const{data,error}=await supabase.functions.invoke('create-employee',{body:{
-    full_name:form.full_name.trim(),
-    phone:normalizePhone(form.phone),
-    password:form.password,
-    role:form.role
-   }})
-   if(error)throw error
-   if(data?.error)throw new Error(data.error)
-   setNotice('Đã tạo tài khoản nhân viên.')
-   setOpen(false)
-   setForm({full_name:'',phone:'',password:'',role:'sales'})
-   await load()
-  }catch(err){setNotice(err.message||'Không thể tạo nhân viên.')}
-  finally{setBusy(false)}
+   const{data,error}=await supabase.functions.invoke('create-employee',{body:{full_name:form.full_name.trim(),phone:form.phone,password:form.password,role:form.role}})
+   if(error)throw error;if(data?.error)throw new Error(data.error)
+   setNotice(`Đã tạo tài khoản. Nhân viên đăng nhập bằng số ${form.phone}.`)
+   setOpen(false);setForm({full_name:'',phone:'',password:'',role:'sales'});await load()
+  }catch(err){setNotice(err.message||'Không thể tạo nhân viên.')}finally{setBusy(false)}
  }
  async function updateEmployee(emp,changes){
   const{error}=await supabase.from('profiles').update({...changes,updated_at:new Date().toISOString()}).eq('id',emp.id)
-  if(error)setNotice(error.message);else{setNotice('Đã cập nhật nhân viên.');await load()}
+  if(error)setNotice(error.message);else{await supabase.from('activity_logs').insert({actor_id:profile.id,actor_name:profile.full_name,action:'update_employee',entity_type:'employee',entity_id:emp.id,description:`Cập nhật tài khoản ${emp.full_name}`});setNotice('Đã cập nhật nhân viên.');await load()}
+ }
+ async function resetPassword(emp){
+  const password=window.prompt(`Nhập mật khẩu mới cho ${emp.full_name} (ít nhất 8 ký tự):`)
+  if(password===null)return;if(password.length<8){setNotice('Mật khẩu phải có ít nhất 8 ký tự.');return}
+  const{data,error}=await supabase.functions.invoke('reset-employee-password',{body:{user_id:emp.id,password}})
+  if(error)setNotice(error.message);else if(data?.error)setNotice(data.error);else setNotice(`Đã đặt lại mật khẩu cho ${emp.full_name}.`)
+ }
+ async function deleteEmployee(emp){
+  if(emp.id===profile.id){setNotice('Không thể xóa tài khoản đang đăng nhập.');return}
+  if(!window.confirm(`Xóa vĩnh viễn tài khoản ${emp.full_name}? Hành động này không thể hoàn tác.`))return
+  const{data,error}=await supabase.functions.invoke('delete-employee',{body:{user_id:emp.id}})
+  if(error)setNotice(error.message);else if(data?.error)setNotice(data.error);else{setNotice('Đã xóa tài khoản nhân viên.');await load()}
  }
  const total=Math.max(1,Math.ceil(count/PAGE_SIZE))
  return <>
-  <div className="toolbar employee-toolbar">
-   <div><h3>Quản lý nhân viên</h3><p>Chủ cửa hàng có thể tạo tài khoản bằng số điện thoại và phân quyền.</p></div>
-   <button className="employee-add" onClick={()=>setOpen(true)}><Plus size={17}/> Thêm nhân viên</button>
-  </div>
-  <div className="panel">
-   <div className="panel-title"><h3>Nhân viên</h3><span>{count} bản ghi</span></div>
-   <table><thead><tr><th>Họ tên</th><th>Số điện thoại</th><th>Email</th><th>Vai trò</th><th>Trạng thái</th></tr></thead>
+  <div className="toolbar employee-toolbar"><div><h3>Quản lý nhân viên</h3><p>Tạo tài khoản bằng số điện thoại, không cần SMS hoặc Twilio.</p></div><button className="employee-add" onClick={()=>setOpen(true)}><Plus size={17}/> Thêm nhân viên</button></div>
+  <div className="panel"><div className="panel-title"><h3>Nhân viên</h3><span>{count} tài khoản</span></div>
+   <table><thead><tr><th>Họ tên</th><th>Số điện thoại</th><th>Tên đăng nhập nội bộ</th><th>Vai trò</th><th>Trạng thái</th><th>Lần đăng nhập cuối</th><th>Thao tác</th></tr></thead>
    <tbody>{rows.map(emp=><tr key={emp.id}>
     <td><b>{emp.full_name||'Chưa đặt tên'}</b>{emp.id===profile.id&&<small className="current-user">Tài khoản hiện tại</small>}</td>
-    <td>{emp.phone||'—'}</td><td>{emp.email||'—'}</td>
-    <td><select value={emp.role} disabled={emp.id===profile.id&&emp.role==='owner'} onChange={e=>updateEmployee(emp,{role:e.target.value})}>
-     <option value="owner">Chủ cửa hàng</option><option value="manager">Quản lý</option><option value="sales">Bán hàng</option><option value="warehouse">Nhân viên kho</option>
-    </select></td>
+    <td>{emp.phone||'—'}</td><td className="internal-login">{emp.email||'—'}</td>
+    <td><select value={emp.role} disabled={emp.id===profile.id&&emp.role==='owner'} onChange={e=>updateEmployee(emp,{role:e.target.value})}><option value="owner">Chủ cửa hàng</option><option value="manager">Quản lý</option><option value="sales">Bán hàng</option><option value="warehouse">Nhân viên kho</option></select></td>
     <td><label className="employee-active"><input type="checkbox" checked={!!emp.active} disabled={emp.id===profile.id} onChange={e=>updateEmployee(emp,{active:e.target.checked})}/>{emp.active?'Hoạt động':'Đã khóa'}</label></td>
-   </tr>)}</tbody></table>
-   <Pagination page={page} total={total} setPage={setPage}/>
+    <td>{fmtDate(emp.last_login)}</td>
+    <td><div className="employee-actions"><button title="Đặt lại mật khẩu" onClick={()=>resetPassword(emp)}><KeyRound size={15}/>Mật khẩu</button>{emp.id!==profile.id&&<button className="danger" title="Xóa tài khoản" onClick={()=>deleteEmployee(emp)}><Trash2 size={15}/>Xóa</button>}</div></td>
+   </tr>)}</tbody></table><Pagination page={page} total={total} setPage={setPage}/>
   </div>
-  {open&&<div className="back" onMouseDown={e=>e.target===e.currentTarget&&setOpen(false)}>
-   <form className="modal" onSubmit={createEmployee}>
-    <div className="modalhead"><div><small>ZONEG SPORT ERP</small><h2>Thêm nhân viên</h2></div><button type="button" onClick={()=>setOpen(false)}><X/></button></div>
-    <label>Họ tên *<input value={form.full_name} onChange={e=>setForm({...form,full_name:e.target.value})} placeholder="Nguyễn Văn A"/></label>
-    <label>Số điện thoại *<input value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})} placeholder="0901234567"/></label>
-    <label>Mật khẩu tạm *<input type="password" value={form.password} onChange={e=>setForm({...form,password:e.target.value})} placeholder="Tối thiểu 8 ký tự"/></label>
-    <label>Vai trò<select value={form.role} onChange={e=>setForm({...form,role:e.target.value})}>
-     <option value="sales">Bán hàng</option><option value="warehouse">Nhân viên kho</option><option value="manager">Quản lý</option>
-    </select></label>
-    <div className="notice">Nhân viên đăng nhập bằng số điện thoại và mật khẩu tạm. Không cần email.</div>
-    <div className="actions"><button type="button" onClick={()=>setOpen(false)}>Hủy</button><button className="primary" disabled={busy}>{busy?'Đang tạo...':'Tạo tài khoản'}</button></div>
-   </form>
-  </div>}
+  {open&&<div className="back" onMouseDown={e=>e.target===e.currentTarget&&setOpen(false)}><form className="modal" onSubmit={createEmployee}>
+   <div className="modalhead"><div><small>ZONEG SPORT ERP V1.8</small><h2>Thêm nhân viên</h2></div><button type="button" onClick={()=>setOpen(false)}><X/></button></div>
+   <label>Họ tên *<input value={form.full_name} onChange={e=>setForm({...form,full_name:e.target.value})} placeholder="Nguyễn Văn A"/></label>
+   <label>Số điện thoại *<input value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})} placeholder="0901234567"/></label>
+   <label>Mật khẩu tạm *<input type="password" value={form.password} onChange={e=>setForm({...form,password:e.target.value})} placeholder="Tối thiểu 8 ký tự"/></label>
+   <label>Vai trò<select value={form.role} onChange={e=>setForm({...form,role:e.target.value})}><option value="sales">Bán hàng</option><option value="warehouse">Nhân viên kho</option><option value="manager">Quản lý</option></select></label>
+   <div className="notice">Nhân viên nhập số điện thoại trên màn hình đăng nhập. Hệ thống tự dùng email nội bộ, không gửi SMS.</div>
+   <div className="actions"><button type="button" onClick={()=>setOpen(false)}>Hủy</button><button className="primary" disabled={busy}>{busy?'Đang tạo...':'Tạo tài khoản'}</button></div>
+  </form></div>}
  </>
+}
+
+function ActivityPage({setNotice}){
+ const[rows,setRows]=useState([]),[count,setCount]=useState(0),[page,setPage]=useState(1),[filter,setFilter]=useState('')
+ useEffect(()=>{load()},[page,filter])
+ async function load(){const from=(page-1)*PAGE_SIZE;let q=supabase.from('activity_logs').select('*',{count:'exact'}).order('created_at',{ascending:false}).range(from,from+PAGE_SIZE-1);if(filter)q=q.eq('action',filter);const{data,error,count}=await q;if(error)setNotice(error.message);else{setRows(data||[]);setCount(count||0)}}
+ const action={login:'Đăng nhập',create_employee:'Tạo nhân viên',reset_password:'Đặt lại mật khẩu',delete_employee:'Xóa nhân viên',update_employee:'Cập nhật nhân viên'}
+ return <div className="panel"><div className="panel-title"><div><h3>Nhật ký hoạt động</h3><p>Theo dõi các thao tác quan trọng trong hệ thống.</p></div><select value={filter} onChange={e=>{setPage(1);setFilter(e.target.value)}}><option value="">Tất cả hoạt động</option>{Object.entries(action).map(([k,v])=><option value={k} key={k}>{v}</option>)}</select></div><table><thead><tr><th>Thời gian</th><th>Người thực hiện</th><th>Hoạt động</th><th>Nội dung</th></tr></thead><tbody>{rows.map(x=><tr key={x.id}><td>{fmtDate(x.created_at)}</td><td>{x.actor_name||'Hệ thống'}</td><td>{action[x.action]||x.action}</td><td>{x.description||'—'}</td></tr>)}</tbody></table><Pagination page={page} total={Math.max(1,Math.ceil(count/PAGE_SIZE))} setPage={setPage}/></div>
 }
 
 

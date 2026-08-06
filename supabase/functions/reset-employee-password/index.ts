@@ -1,15 +1,4 @@
 import{serve}from'https://deno.land/std@0.224.0/http/server.ts'
 import{createClient}from'https://esm.sh/@supabase/supabase-js@2'
-serve(async req=>{
- const auth=req.headers.get('Authorization')||''
- const admin=createClient(Deno.env.get('SUPABASE_URL')!,Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!)
- const userClient=createClient(Deno.env.get('SUPABASE_URL')!,Deno.env.get('SUPABASE_ANON_KEY')!,{global:{headers:{Authorization:auth}}})
- const{data:{user}}=await userClient.auth.getUser()
- const{data:p}=await admin.from('profiles').select('role').eq('id',user?.id).single()
- if(p?.role!=='owner')return new Response(JSON.stringify({error:'Không có quyền'}),{status:403})
- const b=await req.json()
- const{error}=await admin.auth.admin.updateUserById(b.user_id,{password:b.password})
- if(error)return new Response(JSON.stringify({error:error.message}),{status:400})
- await admin.from('profiles').update({must_change_password:true}).eq('id',b.user_id)
- return new Response(JSON.stringify({ok:true}),{headers:{'Content-Type':'application/json'}})
-})
+const cors={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'authorization, x-client-info, apikey, content-type','Content-Type':'application/json'};const json=(d:unknown,s=200)=>new Response(JSON.stringify(d),{status:s,headers:cors})
+serve(async req=>{if(req.method==='OPTIONS')return new Response('ok',{headers:cors});try{const auth=req.headers.get('Authorization')||'',url=Deno.env.get('SUPABASE_URL')!,service=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,anon=Deno.env.get('SUPABASE_ANON_KEY')!,admin=createClient(url,service),client=createClient(url,anon,{global:{headers:{Authorization:auth}}});const{data:{user}}=await client.auth.getUser();if(!user)return json({error:'Chưa đăng nhập.'},401);const{data:p}=await admin.from('profiles').select('full_name,role,active').eq('id',user.id).single();if(p?.role!=='owner'||!p.active)return json({error:'Không có quyền.'},403);const b=await req.json();if(String(b.password||'').length<8)return json({error:'Mật khẩu phải có ít nhất 8 ký tự.'},400);const{data:target}=await admin.from('profiles').select('full_name').eq('id',b.user_id).single();const{error}=await admin.auth.admin.updateUserById(b.user_id,{password:b.password});if(error)return json({error:error.message},400);await admin.from('profiles').update({must_change_password:true,updated_at:new Date().toISOString()}).eq('id',b.user_id);await admin.from('activity_logs').insert({actor_id:user.id,actor_name:p.full_name,action:'reset_password',entity_type:'employee',entity_id:b.user_id,description:`Đặt lại mật khẩu cho ${target?.full_name||'nhân viên'}`});return json({ok:true})}catch(e){return json({error:e instanceof Error?e.message:'Có lỗi xảy ra.'},500)}})

@@ -1,44 +1,22 @@
-# ZoneG Sport ERP v1.7 - Hóa đơn và tiếng Việt
+# ZoneG Sport ERP V1.8
 
-- Toàn bộ nhãn hiển thị, trạng thái và tiêu đề bảng được chuyển sang tiếng Việt.
-- Lập hóa đơn từ đơn hàng.
-- Chọn khổ A4 hoặc A5.
-- In trực tiếp hoặc xuất PDF giữ đúng dấu tiếng Việt.
+Phiên bản này **không có POS bán tại quầy** và **không có hộp thư hợp nhất**.
 
-## Cài đặt
-1. Chạy `supabase/migration-v1.7-invoices.sql`.
-2. Copy dự án lên GitHub, commit và push.
-3. Chờ Netlify Published rồi nhấn Ctrl+F5.
+## Nội dung nâng cấp
+- Đăng nhập nhân viên bằng số điện thoại và mật khẩu, không cần SMS/Twilio.
+- Hệ thống tự chuyển số điện thoại thành email nội bộ `sodienthoai@staff.zoneg.io.vn`.
+- Tạo, khóa/mở, đổi vai trò, đặt lại mật khẩu và xóa nhân viên trên web.
+- Kiểm tra số điện thoại 10 chữ số trước khi tạo.
+- Hiển thị lần đăng nhập gần nhất.
+- Nhật ký hoạt động cho đăng nhập và quản lý nhân viên.
+- Giữ toàn bộ chức năng V1.7: sản phẩm, Excel, kho, đơn hàng, thanh toán, nhập hàng, hóa đơn A4/A5 và PDF.
 
+## Triển khai
+1. Chạy `supabase/migration-v1.8.sql`.
+2. Ghi đè mã nguồn và push GitHub.
+3. Deploy lại ba Edge Functions bằng Supabase Dashboard: `create-employee`, `reset-employee-password`, `delete-employee`.
+4. Netlify: Clear cache and deploy site.
+5. Xóa các tài khoản nhân viên cũ được tạo theo Phone Auth rồi tạo lại trong V1.8.
 
-## Bắt buộc triển khai Edge Function tạo nhân viên
-
-Trong mã nguồn đã có:
-
-- `supabase/functions/create-employee/index.ts`
-- `supabase/functions/reset-employee-password/index.ts`
-
-Triển khai bằng Supabase CLI:
-
-```bash
-supabase login
-supabase link --project-ref zwjdvvtqydmlmmwhnqvo
-supabase functions deploy create-employee
-supabase functions deploy reset-employee-password
-```
-
-Thiết lập secrets phía Supabase:
-
-```bash
-supabase secrets set SUPABASE_URL=https://zwjdvvtqydmlmmwhnqvo.supabase.co
-supabase secrets set SUPABASE_ANON_KEY=YOUR_PUBLISHABLE_KEY
-supabase secrets set SUPABASE_SERVICE_ROLE_KEY=YOUR_SERVICE_ROLE_KEY
-```
-
-Không đưa `SUPABASE_SERVICE_ROLE_KEY` vào Netlify hoặc mã React.
-
-
-## v1.7.1 - Sửa lỗi build Netlify
-
-- Sửa lỗi cú pháp JSX `Unexpected }` tại `src/App.jsx`.
-- Không thay đổi cấu trúc cơ sở dữ liệu hay chức năng hóa đơn.
+## Đăng nhập
+Nhân viên nhập số điện thoại dạng `0901234567`; ứng dụng tự xử lý email nội bộ. Phone Provider có thể để tắt.
