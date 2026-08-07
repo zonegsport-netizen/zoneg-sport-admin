@@ -20,3 +20,15 @@ Phiên bản này **không có POS bán tại quầy** và **không có hộp th
 
 ## Đăng nhập
 Nhân viên nhập số điện thoại dạng `0901234567`; ứng dụng tự xử lý email nội bộ. Phone Provider có thể để tắt.
+
+
+## v1.8.1 — Luồng bán hàng hoàn chỉnh
+- Mã sản phẩm, biến thể, khách hàng, đơn hàng và hóa đơn tự động.
+- Dropdown Danh mục, Thương hiệu, Màu sắc, Kích thước.
+- Quản lý Nhóm khách hàng.
+- Tạo hồ sơ khách hàng.
+- Lập đơn hàng có chọn biến thể và kiểm tra tồn.
+- Hóa đơn bắt buộc xem trước trước khi phát hành.
+- Sau phát hành có thể in A4/A5 hoặc xuất PDF.
+
+Chạy `supabase/migration-v1.8.1.sql` sau các migration trước.
